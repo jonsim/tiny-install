@@ -4,8 +4,10 @@
    Useful for installing small, very simple projects."""
 import argparse
 import ConfigParser
-import os
+import textwrap
+import sys
 
+PROJECT_SECTION = '$PROJECT$'
 SOURCE_KEY = 'source'
 TARGET_KEY = 'target'
 OPTIONAL_KEY = 'optional'
@@ -38,10 +40,31 @@ def main():
     with open(args.config) as config_file:
         config.readfp(config_file)
 
+    # Process the config file's header.
+    project = config.get(PROJECT_SECTION, 'name')
+    description = config.get(PROJECT_SECTION, 'description')
+    root = _get_optional_str(config, PROJECT_SECTION, 'root', None)
+    override = _get_optional_bool(config, PROJECT_SECTION, OVERRIDE_KEY, False)
+
+    # Print the header.
+    print "\nInstaller for %s\n%s\n" % (project, '-' * (14 + len(project)))
+    print '%s\n' % (textwrap.fill(description))
+    if root:
+        if override:
+            user = raw_input('Installation directory [default: %s]: ' % (root))
+            if user:
+                root = user
+        print "Installing to %s\n" % (root)
+
     # Loop through the parsed file and install each component.
     for component in config.sections():
-        source = _get_optional_str(config, component, SOURCE_KEY, component)
-        target = config.get(component, TARGET_KEY)
+        if component == PROJECT_SECTION:
+            continue
+        # Extract fields from the section.
+        source = _get_optional_str(config, component, SOURCE_KEY, component)\
+            .replace(PROJECT_SECTION, root)
+        target = config.get(component, TARGET_KEY)\
+            .replace(PROJECT_SECTION, root)
         optional = _get_optional_bool(config, component, OPTIONAL_KEY, False)
         default = _get_optional_bool(config, component, DEFAULT_KEY, False)
         override = _get_optional_bool(config, component, OVERRIDE_KEY, False)
@@ -60,8 +83,12 @@ def main():
                 target = user
         #if os.path.exists(target):
         print '  %s installed from %s to %s' % (component, source, target)
-    print 'Installation complete'
+    print '\n%s installed.' % (project)
 
 # Entry point.
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print
+        sys.exit(1)
