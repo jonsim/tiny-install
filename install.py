@@ -6,7 +6,9 @@ import argparse
 import ConfigParser
 import textwrap
 import sys
+import os
 
+SUPPORTED_NAMES = ['INSTALL.CFG', 'install.cfg', '.INSTALL.CFG', '.install.cfg']
 PROJECT_SECTION = '$PROJECT$'
 SOURCE_KEY = 'source'
 TARGET_KEY = 'target'
@@ -29,16 +31,17 @@ def main():
                                      'to be lightly configurable and very '
                                      'simple. Useful for installing small, '
                                      'very simple projects.')
-    parser.add_argument('config',
-                        type=str, metavar='ICFG-FILE',
-                        help='Install config file.')
+    parser.add_argument('project_dir',
+                        type=str, metavar='PROJECT-DIR', nargs='?', default='.',
+                        help='Project directory to install from. Defaults to '
+                        'the current directory.')
     args = parser.parse_args()
     interactive = True
 
     # Parse the config file.
+    config_files = [os.path.join(args.project_dir, n) for n in SUPPORTED_NAMES]
     config = ConfigParser.RawConfigParser()
-    with open(args.config) as config_file:
-        config.readfp(config_file)
+    config.read(config_files)
 
     # Process the config file's header.
     project = config.get(PROJECT_SECTION, 'name')
