@@ -1,9 +1,9 @@
 # Table of Contents
 
- - [tiny-install](#tiny-install)
+- [tiny-install](#tiny-install)
   - [Dependencies](#dependencies)
   - [License](#license)
- - [Documentation](#documentation)
+- [Documentation](#documentation)
   - [Installing a project](#installing-a-project)
   - [Creating an installable project](#creating-an-installable-project)
     - [Config file syntax](#config-file-syntax)
