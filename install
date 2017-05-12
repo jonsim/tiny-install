@@ -49,13 +49,16 @@ def process_project(config, interactive=True):
             overrides[key] = value
     return overrides
 
-def process_module(config, name, overrides=None, interactive=True):
+def process_module(config, section, overrides=None, interactive=True):
     # Extract fields from the section.
-    source = config.get(name, SOURCE_KEY, vars=overrides)
-    target = config.get(name, TARGET_KEY, vars=overrides)
-    optional = config.get(name, OPTIONAL_MODULE_KEY, vars=overrides)
-    default = config.get(name, DEFAULT_MODULE_KEY, vars=overrides)
-    override_target = config.get(name, OVERRIDE_TARGET_KEY, vars=overrides)
+    if not config.has_option(section, NAME_KEY, vars=overrides):
+        config.set(section, NAME_KEY, vars=overrides)
+    name = config.get(section, NAME_KEY, vars=overrides)
+    source = config.get(section, SOURCE_KEY, vars=overrides)
+    target = config.get(section, TARGET_KEY, vars=overrides)
+    optional = config.get(section, OPTIONAL_MODULE_KEY, vars=overrides)
+    default = config.get(section, DEFAULT_MODULE_KEY, vars=overrides)
+    override_target = config.get(section, OVERRIDE_TARGET_KEY, vars=overrides)
     # Collect user input if necessary.
     if interactive and optional:
         user = raw_input('Install %s [%s]: ' % (name, 'Y/n' if default else 'N/y'))
