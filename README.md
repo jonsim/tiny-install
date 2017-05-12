@@ -18,6 +18,9 @@
 A micro installer, intended to be very small, light weight and configurable.
 Designed for the installation of small, simple projects.
 
+**NB: tiny-install is currently under development. See the
+[Remaining work](#remaining-work) section for current status.**
+
 tiny-install is little more than a glorified script which copies files about, as
 described in a project's
 [configuration file](#https://github.com/jonsim/tiny-install#config-file-syntax).
@@ -88,13 +91,12 @@ To enable tiny-install to install a project as above:
 1. (Optionally) give your users some kind of hint on how to install. Choose the
    [install pattern](#installing-a-project) which most makes sense for your
    project. As tiny-install is licensed under
-   [the MIT license](#https://github.com/jonsim/tiny-install/blob/master/LICENSE)
+   [the MIT license](https://github.com/jonsim/tiny-install/blob/master/LICENSE)
    you are free to modify and/or distribute it with your application as you see
    fit providing the copyright &amp; license header in `install` remains intact.
    You may redirect users to this page or reproduce in part or in full this
    documentation on your project's page. You need not provide attribution for
-   any part of this documentation reproduced, nor even at all, providing the
-   copyright &amp; license header in `install` remains intact.
+   any part of this documentation reproduced, nor even at all.
 
 
 ### Config file syntax
@@ -121,7 +123,7 @@ file.
 | `description`     | A *brief* description of the project. Displayed in the installation text. | N/A (must be provided) |
 | `root`            | The root installation directory. This is optional, its value can be accessed as `%(root)s` in all other values. Specifying this alone does nothing. This is actually a special-case of the *all other keys* section which allows user-overrides with the `override_root` key. | Empty string |
 | `override_root`   | True if the user can override the root installation directory.            | False                  |
-| *all other keys*  | All other key-value pairs in this section are pulled verbatim and stored. As with `root`, these keys can then be accessed as `%(key-name)s` in all other values. Unlike `root` these are not user overrideable. This is useful to reduce replication of parts of paths etc. | N/A (undefined) |
+| *all other keys*  | All other key-value pairs in this section are pulled verbatim and stored. As with `root`, these keys can then be accessed as `%(key-name)s` in all other values. Unlike `root` these are not user overrideable. This is useful to reduce replication. The key names must not clash with [those permitted in module sections](#module-sections). | N/A (undefined) |
 
 
 #### Module sections
@@ -187,8 +189,11 @@ override_target = yes
 ## Remaining work
 
 * File copying
-* Uninstallation
 * Symbolic links
+* Add further examples
+* Zip file installation
+* Git installation
+* Uninstallation
 * Write out module install locations
 * Consider updating
 * Consider dependency checking
