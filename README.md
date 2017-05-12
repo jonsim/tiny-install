@@ -82,7 +82,6 @@ If you have a project which can be installed with tiny-install, assuming
 | `-h`, `--help`      | Show the help text.                                    |
 | `-y`, `--yes`       | Run non-interactively, using all default arguments.    |
 | `-l`, `--links`     | Create symbolic links instead of copying files.        |
-| `-u`, `--uninstall` | Uninstall an existing project installation.            |
 
 
 ## Creating an installable project
@@ -157,7 +156,8 @@ All keys *within a section* are accessible *within the scope of that section* vi
 
 The `examples` directory in this repository contains several examples of varying
 complexity which those interested are encouraged to explore. The example in
-`examples/simple` is replicated below:
+`examples/simple` is replicated below.
+
 
 ### Project structure
 
@@ -170,6 +170,7 @@ examples/simple
 `-- module-2
    `- file.txt
 ```
+
 
 ### Config file
 
@@ -197,6 +198,7 @@ target = %(root)s/second-module
 override_target = yes
 ```
 
+
 ### Installation
 
 Note that I override some values below during installation:
@@ -222,6 +224,7 @@ Install module-2 [Y/n]? n
 simple example installed
 ```
 
+
 ### Installed structure
 
 Note the altered values are present in the installed structure:
@@ -237,8 +240,9 @@ Note the altered values are present in the installed structure:
 
 * Provide more friendly error output
 * Add further examples
-* Zip file installation
-* Git installation
+* Installation from a zip file
+* Installation from a remote zip file
+* Installation from a git repository
 * Write out module install locations
 * Consider uninstallation (which would require keeping a record of installation)
 * Consider updating (which would require keeping a record of installation)
