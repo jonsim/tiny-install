@@ -220,7 +220,6 @@ Install module-2 [Y/n]? n
   Skipped
 
 simple example installed
-
 ```
 
 ### Installed structure
