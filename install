@@ -66,13 +66,14 @@ def process_project(config, interactive=True):
             expected on stdin to retrieve any potential overrides.
 
     Returns:
-        dict of string keys to string values for all override information
-        exported from this section.
+        string: project name
+        dict of string to strings: mapping of keys values for all override
+            information exported from the $PROJECT$ section.
     """
     name = config.get(PROJECT_SECTION, NAME_KEY)
     desc = config.get(PROJECT_SECTION, DESC_KEY)
     header = '%s installer' % (name)
-    print '\n%s\n%s\n' % (header, '-' * len(name))
+    print '\n%s\n%s\n' % (header, '-' * len(header))
     print '%s\n' % (textwrap.fill(desc))
     if config.has_option(PROJECT_SECTION, ROOT_KEY):
         root = config.get(PROJECT_SECTION, ROOT_KEY)
@@ -86,7 +87,7 @@ def process_project(config, interactive=True):
     for (key, value) in config.items(PROJECT_SECTION):
         if key not in DEFAULTS and key != NAME_KEY:
             overrides[key] = value
-    return overrides
+    return name, overrides
 
 def process_module(project_dir, config, section, overrides=None, symlink=False,
                    interactive=True):
@@ -114,8 +115,9 @@ def process_module(project_dir, config, section, overrides=None, symlink=False,
     override_target = config.getboolean(section, OVERRIDE_TARGET_KEY)
     # Collect user input if necessary.
     if interactive and optional:
-        user = raw_input('Install %s [%s]: ' % (name, 'Y/n' if default else 'N/y'))
+        user = raw_input('Install %s [%s]? ' % (name, 'Y/n' if default else 'N/y'))
         if (user and user not in YES_VALUES) or (not user and not default):
+            print '  Skipped'
             return
     else:
         print "Installing %s..." % (name)
@@ -130,10 +132,21 @@ def process_module(project_dir, config, section, overrides=None, symlink=False,
     # Check source exists.
     if not os.path.exists(source):
         raise Exception('Source file %s does not exist' % (source))
-    # Check target exists and make it if necessary.
+    # Check target directory exists and make it if necessary.
     target_dir = os.path.dirname(target)
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
+    # Check the target itself does not exist and remove it if it does.
+    if os.path.exists(target):
+        if os.path.isfile(target):
+            os.remove(target)
+        else:
+            if interactive:
+                user = raw_input('  WARNING: %s exists. Replace [Y/n]? ' % (target))
+                if user and user not in YES_VALUES:
+                    print '  Skipped'
+                    return
+            shutil.rmtree(target)
     # Install the file
     if symlink:
         os.symlink(os.path.abspath(source), target)
@@ -143,7 +156,7 @@ def process_module(project_dir, config, section, overrides=None, symlink=False,
             shutil.copy2(source, target)
         else:
             shutil.copytree(source, target)
-    print '  Installed from %s to %s' % (source, target)
+    print '  Installed'
 
 def main():
     """Main method."""
@@ -168,12 +181,13 @@ def main():
     config.read([os.path.join(args.project_dir, n) for n in SUPPORTED_NAMES])
 
     # Remove the project information.
-    overrides = process_project(config, args.interactive)
+    name, overrides = process_project(config, args.interactive)
     # Loop through the parsed file and install each module.
     for module in config.sections():
         if module != PROJECT_SECTION:
             process_module(args.project_dir, config, module, overrides,
                            symlink=args.links, interactive=args.interactive)
+    print '\n%s installed' % (name)
 
 # Entry point.
 if __name__ == "__main__":

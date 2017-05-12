@@ -9,8 +9,12 @@
     - [Config file syntax](#config-file-syntax)
       - [The `$PROJECT$` section](#the-project-section)
       - [Module sections](#module-sections)
-    - [Example config file](#example-config-file)
-  - [Remaining work](#remaining-work)
+- [Example](#example)
+  - [Project structure](#project-structure)
+  - [Config file](#config-file)
+  - [Installation](#installation)
+  - [Installed structure](#installed-structure)
+- [Remaining work](#remaining-work)
 
 
 # tiny-install
@@ -149,12 +153,27 @@ The only restricted names are `$PROJECT$` and `DEFAULT`.
 All keys *within a section* are accessible *within the scope of that section* via the `%(key-name)s` syntax - e.g. `%(name)s`, `%(source)s`. These will have their default value if they are not otherwise specified (so you need not define `name` to have it correctly interpolated).
 
 
-### Example config file
+# Example
 
 The `examples` directory in this repository contains several examples of varying
-complexity which interested parties are encouraged to explore. A simple one of
-these is replicated below:
+complexity which those interested are encouraged to explore. The example in
+`examples/simple` is replicated below:
 
+### Project structure
+
+```
+examples/simple
++-- base-file.txt
++-- INSTALL.CFG
++-- module-1
+|  `- file.txt
+`-- module-2
+   `- file.txt
+```
+
+### Config file
+
+Contents of `INSTALL.CFG`:
 ```ini
 [$PROJECT$]
 name = simple example
@@ -178,9 +197,46 @@ target = %(root)s/second-module
 override_target = yes
 ```
 
+### Installation
 
-## Remaining work
+Note that I override some values below during installation:
+```
+$ install examples/simple
 
+simple example installer
+------------------------
+
+A very simple example project
+
+Installation directory [default: ~/simple-example]: 
+Installing to ~/simple-example
+
+Installing base...
+  Installed
+Installing module-1...
+  Install directory [default: ~/simple-example/first-module]: ~/simple-example/1
+  Installed
+Install module-2 [Y/n]? n
+  Skipped
+
+simple example installed
+
+```
+
+### Installed structure
+
+Note the altered values are present in the installed structure:
+```
+/home/jon/simple-example
++-- base.txt
+`-- 1
+   `- file.txt
+```
+
+
+# Remaining work
+
+* Provide more friendly error output
 * Add further examples
 * Zip file installation
 * Git installation
