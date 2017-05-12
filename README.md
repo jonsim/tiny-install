@@ -131,7 +131,7 @@ file.
 | `name`            | The project's name. Displayed in installation text.                       | N/A (must be provided) |
 | `description`     | A *brief* description of the project. Displayed in the installation text. | N/A (must be provided) |
 | `root`            | The root installation directory. This is optional, its value can be accessed as `%(root)s` in all other values. Specifying this alone does nothing. This is actually a special-case of the *all other keys* section which allows user-overrides with the `override_root` key. | Empty string |
-| `override_root`   | True if the user can override the root installation directory.            | `no`                   |
+| `override_root`   | `yes` if the user can override the root installation directory.            | `no`                   |
 | *all other keys*  | All other key-value pairs in this section are pulled verbatim and stored. As with `root`, these keys can then be accessed as `%(key-name)s` in all other values. Unlike `root` these are not user overrideable. This is useful to reduce replication. The key names must not clash with [those permitted in module sections](#module-sections). | N/A (undefined) |
 
 
@@ -143,11 +143,11 @@ The only restricted names are `$PROJECT$` and `DEFAULT`.
 | Available key     | Description                                                                                 | Default if absent |
 |-------------------|---------------------------------------------------------------------------------------------|-------------------|
 | `name`			| The module's name. This only need be provided if for some reason it cannot be represented in the section name (i.e. it is a restricted name or contains special characters). | *Section name* |
-| `optional_module` | True if the user may opt out of installing this module.                                     | `no`              |
-| `default_module`  | True if this module should be installed by default (ignored if the module is not optional). | `yes`             |
+| `optional_module` | `yes` if the user may opt out of installing this module.                                     | `no`              |
+| `default_module`  | `yes` if this module should be installed by default (ignored if the module is not optional). | `yes`             |
 | `source`          | Path, relative to the config file, to the item comprising the module. This may be a file or a directory (in which case it is copied recursively). | `%(name)s` |
 | `target`          | Absolute path to the target of this item. The installation will rename to the basename, so must include the name of the destination. As this path is absolute use of `%(root)s` is desireable. | `%(root)s/%(source)s` |
-| `override_target` | True if the user can override the target destination.                                       | `no`              |
+| `override_target` | `yes` if the user can override the target destination.                                       | `no`              |
 
 All keys *within a section* are accessible *within the scope of that section* via the `%(key-name)s` syntax - e.g. `%(name)s`, `%(source)s`. These will have their default value if they are not otherwise specified (so you need not define `name` to have it correctly interpolated).
 
