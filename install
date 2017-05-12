@@ -21,13 +21,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-"""A micro installer, designed to be lightly configurable and very simple.
-   Useful for installing small, very simple projects."""
-import argparse
-import ConfigParser
-import textwrap
-import sys
-import os
+"""
+A micro installer, intended to be very small, light weight and configurable.
+Designed for the installation of small, simple projects.
+
+Maintained at https://github.com/jonsim/tiny-install
+"""
+import argparse     # ArgumentParser
+import ConfigParser # SafeConfigParser
+import textwrap     # fill
+import sys          # exit
+import shutil       # copy2, copytree
+import os           # os.path.join, os.path.exists, os.path.dirname,
+                    # os.path.abspath, os.makedirs, os.symlink
 
 SUPPORTED_NAMES = ['INSTALL.CFG', 'install.cfg', '.INSTALL.CFG', '.install.cfg']
 PROJECT_SECTION = '$PROJECT$'
@@ -41,7 +47,7 @@ DEFAULT_MODULE_KEY = 'default_module'
 OVERRIDE_TARGET_KEY = 'override_target'
 OVERRIDE_ROOT_KEY = 'override_root'
 DEFAULTS = {
-    SOURCE_KEY: '',
+    SOURCE_KEY: '%(' + NAME_KEY + ')s',
     TARGET_KEY: '%(' + ROOT_KEY + ')s/%(' + SOURCE_KEY + ')s',
     OPTIONAL_MODULE_KEY: 'no',
     DEFAULT_MODULE_KEY: 'yes',
@@ -52,13 +58,25 @@ DEFAULTS = {
 YES_VALUES = ['y', 'Y', 'yes', 'Yes']
 
 def process_project(config, interactive=True):
+    """Processes the $PROJECT$ section from a config and prints project info.
+
+    Args:
+        config:         SafeConfigParser containing installation configuration.
+        interactive:    boolean, True if questions should be asked with answers
+            expected on stdin to retrieve any potential overrides.
+
+    Returns:
+        dict of string keys to string values for all override information
+        exported from this section.
+    """
     name = config.get(PROJECT_SECTION, NAME_KEY)
     desc = config.get(PROJECT_SECTION, DESC_KEY)
-    print '\nInstaller for %s\n%s\n' % (name, '-' * (14 + len(name)))
+    header = '%s installer' % (name)
+    print '\n%s\n%s\n' % (header, '-' * len(name))
     print '%s\n' % (textwrap.fill(desc))
     if config.has_option(PROJECT_SECTION, ROOT_KEY):
         root = config.get(PROJECT_SECTION, ROOT_KEY)
-        override_root = config.get(PROJECT_SECTION, OVERRIDE_ROOT_KEY)
+        override_root = config.getboolean(PROJECT_SECTION, OVERRIDE_ROOT_KEY)
         if interactive and override_root:
             user = raw_input('Installation directory [default: %s]: ' % (root))
             if user:
@@ -70,16 +88,30 @@ def process_project(config, interactive=True):
             overrides[key] = value
     return overrides
 
-def process_module(config, section, overrides=None, interactive=True):
-    # Extract fields from the section.
-    if not config.has_option(section, NAME_KEY, vars=overrides):
-        config.set(section, NAME_KEY, vars=overrides)
+def process_module(project_dir, config, section, overrides=None, symlink=False,
+                   interactive=True):
+    """Processes a module section from a config and installs it.
+
+    Args:
+        project_dir:    string path of the location of the config file.
+        config:         SafeConfigParser containing installation configuration.
+        section:        string name of the module's section in the config.
+        overrides:      dict of string keys to string values for all override
+            information exported from the $PROJECT$ section.
+        symlink:        boolean, True if symlinks should be generated at the
+            target location instead of copying there.
+        interactive:    boolean, True if questions should be asked with answers
+            expected on stdin to retrieve any potential overrides.
+    """
+    # Extract fields from the section (and write-back any missing).
+    if not config.has_option(section, NAME_KEY):
+        config.set(section, NAME_KEY, section)
     name = config.get(section, NAME_KEY, vars=overrides)
     source = config.get(section, SOURCE_KEY, vars=overrides)
     target = config.get(section, TARGET_KEY, vars=overrides)
-    optional = config.get(section, OPTIONAL_MODULE_KEY, vars=overrides)
-    default = config.get(section, DEFAULT_MODULE_KEY, vars=overrides)
-    override_target = config.get(section, OVERRIDE_TARGET_KEY, vars=overrides)
+    optional = config.getboolean(section, OPTIONAL_MODULE_KEY)
+    default = config.getboolean(section, DEFAULT_MODULE_KEY)
+    override_target = config.getboolean(section, OVERRIDE_TARGET_KEY)
     # Collect user input if necessary.
     if interactive and optional:
         user = raw_input('Install %s [%s]: ' % (name, 'Y/n' if default else 'N/y'))
@@ -92,7 +124,25 @@ def process_module(config, section, overrides=None, interactive=True):
         if user:
             config.set(name, TARGET_KEY, user)
             target = config.get(name, TARGET_KEY, vars=overrides)
-    #if os.path.exists(target):
+    # Actually install the module.
+    source = os.path.expanduser(os.path.join(project_dir, source))
+    target = os.path.expanduser(target)
+    # Check source exists.
+    if not os.path.exists(source):
+        raise Exception('Source file %s does not exist' % (source))
+    # Check target exists and make it if necessary.
+    target_dir = os.path.dirname(target)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    # Install the file
+    if symlink:
+        os.symlink(os.path.abspath(source), target)
+    else:
+        # Copy the file
+        if os.path.isfile(source):
+            shutil.copy2(source, target)
+        else:
+            shutil.copytree(source, target)
     print '  Installed from %s to %s' % (source, target)
 
 def main():
@@ -111,9 +161,6 @@ def main():
     parser.add_argument('-l', '--links',
                         action='store_true', default=False,
                         help='create symbolic links instead of copying files')
-    parser.add_argument('-u', '--uninstall',
-                        action='store_true', default=False,
-                        help='uninstall an existing project installation')
     args = parser.parse_args()
 
     # Parse the config file.
@@ -125,13 +172,13 @@ def main():
     # Loop through the parsed file and install each module.
     for module in config.sections():
         if module != PROJECT_SECTION:
-            process_module(config, module, overrides, args.interactive)
+            process_module(args.project_dir, config, module, overrides,
+                           symlink=args.links, interactive=args.interactive)
 
 # Entry point.
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print
-        print "Installation cancelled."
+        print "\nInstallation cancelled."
         sys.exit(1)
