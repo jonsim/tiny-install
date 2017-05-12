@@ -7,7 +7,7 @@
   - [Installing a project](#installing-a-project)
   - [Creating an installable project](#creating-an-installable-project)
     - [Config file syntax](#config-file-syntax)
-      - [The `$PROJECT$` section](#the-$PROJECT$-section)
+      - [The `$PROJECT$` section](#the-project-section)
       - [Module sections](#module-sections)
     - [Example config file](#example-config-file)
   - [Remaining work](#remaining-work)
