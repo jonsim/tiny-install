@@ -15,25 +15,31 @@
 
 # tiny-install
 
-A micro installer, designed to be very small, light weight and configurable.
+A micro installer, intended to be very small, light weight and configurable.
 Designed for the installation of small, simple projects.
 
 tiny-install is little more than a glorified script which copies files about, as
-described in a project's configuration file. It does not handle dependency
-installation or checking, versioning or updating.
+described in a project's
+[configuration file](#https://github.com/jonsim/tiny-install#config-file-syntax).
+It does not handle dependency installation or checking, versioning or updating.
 
 &copy; Copyright 2017 Jonathan Simmonds
 
 
 ## Dependencies
 
-&ge; Python 2.3 (if using < 2.7 place [argparse.py](https://pypi.python.org/pypi/argparse)
-alongside `install`).
+&ge; Python 2.3 (if using < 2.7 place
+[argparse.py](https://pypi.python.org/pypi/argparse) alongside `install`).
 
 
 ## License
 
-All files are licensed under the MIT license.
+All files are licensed under
+[the MIT license](https://github.com/jonsim/tiny-install/blob/master/LICENSE).
+
+Only the file `install` makes up the functional part of the project and may be
+distributed alone providing the copyright &amp; license header in it remains
+intact.
 
 
 # Documentation
@@ -41,7 +47,7 @@ All files are licensed under the MIT license.
 ## Installing a project
 
 Projects should make it clear that they can be installed with tiny-install.
-Then, assuming `install` is on the `PATH`, simply run any of:
+Then, assuming `install` is on the `PATH`, simply run one of:
 
 * ```bash
    cd <some-project>
@@ -60,7 +66,7 @@ Then, assuming `install` is on the `PATH`, simply run any of:
    install git@github.com:jonsim/some-project.git
    ```
 
-`install` will accept the following command line options:
+`install` accepts the following command line options:
 
 | Option              | Effect                                                 |
 |---------------------|--------------------------------------------------------|
@@ -79,6 +85,16 @@ To enable tiny-install to install a project as above:
 1. Describe in this file the various modules of the project and their
    installation locations. See the [Config file syntax](#config-file-syntax)
    section for information on this.
+1. (Optionally) give your users some kind of hint on how to install. Choose the
+   [install pattern](#installing-a-project) which most makes sense for your
+   project. As tiny-install is licensed under
+   [the MIT license](#https://github.com/jonsim/tiny-install/blob/master/LICENSE)
+   you are free to modify and/or distribute it with your application as you see
+   fit providing the copyright &amp; license header in `install` remains intact.
+   You may redirect users to this page or reproduce in part or in full this
+   documentation on your project's page. You need not provide attribution for
+   any part of this documentation reproduced, nor even at all, providing the
+   copyright &amp; license header in `install` remains intact.
 
 
 ### Config file syntax
