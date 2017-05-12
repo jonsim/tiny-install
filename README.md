@@ -21,10 +21,12 @@ Designed for the installation of small, simple projects.
 **NB: tiny-install is currently under development. See the
 [Remaining work](#remaining-work) section for current status.**
 
-tiny-install is little more than a glorified script which copies files about, as
+tiny-install is little more than a glorified file-copying/linking script as
 described in a project's
 [configuration file](#https://github.com/jonsim/tiny-install#config-file-syntax).
-It does not handle dependency installation or checking, versioning or updating.
+It does not handle dependency installation or checking, versioning, updating
+or uninstalling. These would all require a central database of installed
+projects (short of fixed install locations).
 
 &copy; Copyright 2017 Jonathan Simmonds
 
@@ -155,37 +157,24 @@ these is replicated below:
 
 ```ini
 [$PROJECT$]
-name = best project
-description = some long winded and really quite verbose description. Maybe its
-              too verbose for a description but then again maybe
-              its not.
-root = ~
+name = simple example
+description = A very simple example project
+root = ~/simple-example
 override_root = yes
-version = 1.1
 
-[testing]
-source = test/test.txt
-target = %(root)s/%(name)s/interesting filename.%(version)s.txt
+[base]
+source = base-file.txt
+target = %(root)s/base.txt
+
+[module-1]
+target = %(root)s/first-module
 override_target = yes
 
-[vimrc]
-optional_module = no
-default_module = yes
-source = vim/.vimrc
-target = %(root)s/.vimrc
-override_target = no
-
-[gitconfig]
+[module-2]
 optional_module = yes
 default_module = yes
-source = git/.gitconfig
-target = %(root)s/.gitconfig
-override_target = no
-
-[vscode]
-optional_module = yes
-source = vscode
-target = %(root)s/.vscode
+source = module-2
+target = %(root)s/second-module
 override_target = yes
 ```
 
