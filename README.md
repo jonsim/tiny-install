@@ -59,20 +59,31 @@ If you have a project which can be installed with tiny-install, assuming
 `install` is on the `PATH`, simply run one of:
 
 * ```bash
-   cd <some-project>
-   install
+   cd examples/simple
+   install .
    ```
 * ```bash
-   install <some-project>
+   install examples/simple
    ```
 * ```bash
-   install some-project.zip
+   install examples/simple-zipped.zip
    ```
 * ```bash
-   install http://some-website.com/some-project.zip
+   install https://github.com/jonsim/tiny-install/raw/master/examples/simple-zipped.zip
    ```
 * ```bash
    install git@github.com:jonsim/some-project.git
+   ```
+
+Alternatively, if `install` is not on the `PATH`, but is distributed in the root
+directory of the project:
+
+* ```bash
+   cd some/project
+   ./install
+   ```
+* ```bash
+   ./some/project/install
    ```
 
 `install` accepts the following command line options:
@@ -243,7 +254,6 @@ Note the altered values are present in the installed structure:
 
 * Provide more friendly error output
 * Add further examples
-* Installation from a remote zip file
 * Installation from a git repository
 * Write out module install locations
 * Consider uninstallation (which would require keeping a record of installation)

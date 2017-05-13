@@ -164,6 +164,16 @@ def process_module(project_dir, config, section, overrides=None, symlink=False,
             shutil.copytree(source, target)
     print '  Installed'
 
+def make_tempdir():
+    """Retrieves a temporary directory, creating it if necessary.
+
+    Returns:    string path to a temporary directory.
+    """
+    global _TEMPDIR
+    if not _TEMPDIR:
+        _TEMPDIR = tempfile.mkdtemp()
+    return _TEMPDIR
+
 def get_config_from_local_dir(dir_path, err_loc=None):
     """Retrieves a path to the config file from a local directory.
 
@@ -197,13 +207,15 @@ def get_config_from_local_zip(zip_path):
         ConfigError:    if a config file could not be extracted from the zip.
     """
     import zipfile      # ZipFile
-    global _TEMPDIR
     with zipfile.ZipFile(zip_path, 'r') as project_zip:
-        root_dir = _TEMPDIR = tempfile.mkdtemp()
+        root_dir = make_tempdir()
+        # Extract from the zipfile (permitting existing files in the tempdir).
+        prior_files = [os.path.join(root_dir, f) for f in os.listdir(root_dir)]
         project_zip.extractall(root_dir)
+        after_files = [os.path.join(root_dir, f) for f in os.listdir(root_dir)]
+        extracted_files = [f for f in after_files if f not in prior_files]
         # Use the root extracted tree unless it contains just a single
         # directory, in which case use that.
-        extracted_files = [os.path.join(root_dir, f) for f in os.listdir(root_dir)]
         if len(extracted_files) == 1 and os.path.isdir(extracted_files[0]):
             root_dir = extracted_files[0]
         return get_config_from_local_dir(root_dir, zip_path)
@@ -220,8 +232,24 @@ def get_config_from_remote_zip(zip_url):
     Raises:
         ConfigError:    if a config file could not be retrieved from the URL.
     """
-    raise ConfigError('%s is an URL to a zip file but this functionality is '
-                      'currently unsupported' % (zip_url))
+    import urllib2  # urlopen
+    import urlparse # urlparse
+    # Download the zip file in 1MB chunks.
+    chunk_size = 1024 * 1024
+    zip_filename = os.path.basename(urlparse.urlparse(zip_url).path)
+    remote_zip = urllib2.urlopen(zip_url)
+    try:
+        # Download it using the file's basename to a temp dir.
+        temp_dir = make_tempdir()
+        zip_filename = os.path.join(temp_dir, zip_filename)
+        with open(zip_filename, 'w') as local_zip:
+            remote_chunk = remote_zip.read(chunk_size)
+            while remote_chunk:
+                local_zip.write(remote_chunk)
+                remote_chunk = remote_zip.read(chunk_size)
+    finally:
+        remote_zip.close()
+    return get_config_from_local_zip(zip_filename)
 
 def get_config_from_remote_git(git_url):
     """Retrieves a path to the config file from an URL to a git repository.
@@ -295,6 +323,7 @@ def main():
     try:
         # Find the config file.
         config_path = get_config(args.project_loc)
+        project_dir = os.path.dirname(config_path)
 
         # Parse the config file.
         config = ConfigParser.SafeConfigParser(DEFAULTS)
@@ -306,7 +335,7 @@ def main():
         # Loop through the parsed file and install each module.
         for module in config.sections():
             if module != PROJECT_SECTION:
-                process_module(args.project_dir, config, module, overrides,
+                process_module(project_dir, config, module, overrides,
                                symlink=args.links, interactive=args.interactive)
         print '\n%s installed' % (name)
     except KeyboardInterrupt:
