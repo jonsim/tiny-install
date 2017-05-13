@@ -29,11 +29,11 @@ Maintained at https://github.com/jonsim/tiny-install
 """
 import argparse     # ArgumentParser
 import ConfigParser # SafeConfigParser
-import textwrap     # fill
 import sys          # exit
-import shutil       # copy2, copytree
-import os           # os.path.join, os.path.exists, os.path.dirname,
-                    # os.path.abspath, os.makedirs, os.symlink
+import shutil       # copy2, copytree, rmtree
+import os           # os.path.join, os.path.exists, os.path.dirname, os.listdir
+                    # os.path.abspath, os.makedirs, os.symlink, os.remove,
+import tempfile     # mkdtemp
 
 SUPPORTED_NAMES = ['INSTALL.CFG', 'install.cfg', '.INSTALL.CFG', '.install.cfg']
 PROJECT_SECTION = '$PROJECT$'
@@ -56,6 +56,11 @@ DEFAULTS = {
     DESC_KEY: '',
 }
 YES_VALUES = ['y', 'Y', 'yes', 'Yes']
+_TEMPDIR = None
+
+class ConfigError(RuntimeError):
+    """Exception caused by the config file being missing or invalid."""
+    pass
 
 def process_project(config, interactive=True):
     """Processes the $PROJECT$ section from a config and prints project info.
@@ -70,6 +75,7 @@ def process_project(config, interactive=True):
         dict of string to strings: mapping of keys values for all override
             information exported from the $PROJECT$ section.
     """
+    import textwrap # fill
     name = config.get(PROJECT_SECTION, NAME_KEY)
     desc = config.get(PROJECT_SECTION, DESC_KEY)
     header = '%s installer' % (name)
@@ -131,7 +137,7 @@ def process_module(project_dir, config, section, overrides=None, symlink=False,
     target = os.path.expanduser(target)
     # Check source exists.
     if not os.path.exists(source):
-        raise Exception('Source file %s does not exist' % (source))
+        raise ConfigError('Source file %s does not exist' % (source))
     # Check target directory exists and make it if necessary.
     target_dir = os.path.dirname(target)
     if not os.path.exists(target_dir):
@@ -158,6 +164,113 @@ def process_module(project_dir, config, section, overrides=None, symlink=False,
             shutil.copytree(source, target)
     print '  Installed'
 
+def get_config_from_local_dir(dir_path, err_loc=None):
+    """Retrieves a path to the config file from a local directory.
+
+    Args:
+        dir_path:   string path to a directory.
+        err_loc:    the location to report if an error occurs. May be None
+            (default) to report dir_path.
+
+    Returns:
+        string path to the local config file.
+
+    Raises:
+        ConfigError:    if a config file could not be found in the directory.
+    """
+    for candidate in [os.path.join(dir_path, n) for n in SUPPORTED_NAMES]:
+        if os.path.isfile(candidate):
+            return candidate
+    raise ConfigError('%s does not contain any installation config files.'
+                      % (err_loc if err_loc else dir_path))
+
+def get_config_from_local_zip(zip_path):
+    """Retrieves a path to the config file from a local zip file.
+
+    Args:
+        zip_path:   string path to a zip file.
+
+    Returns:
+        string path to the local config file.
+
+    Raises:
+        ConfigError:    if a config file could not be extracted from the zip.
+    """
+    import zipfile      # ZipFile
+    global _TEMPDIR
+    with zipfile.ZipFile(zip_path, 'r') as project_zip:
+        root_dir = _TEMPDIR = tempfile.mkdtemp()
+        project_zip.extractall(root_dir)
+        # Use the root extracted tree unless it contains just a single
+        # directory, in which case use that.
+        extracted_files = [os.path.join(root_dir, f) for f in os.listdir(root_dir)]
+        if len(extracted_files) == 1 and os.path.isdir(extracted_files[0]):
+            root_dir = extracted_files[0]
+        return get_config_from_local_dir(root_dir, zip_path)
+
+def get_config_from_remote_zip(zip_url):
+    """Retrieves a path to the config file from an URL to a remote zip file.
+
+    Args:
+        zip_url:    string url to a zip file.
+
+    Returns:
+        string path to the local config file.
+
+    Raises:
+        ConfigError:    if a config file could not be retrieved from the URL.
+    """
+    raise ConfigError('%s is an URL to a zip file but this functionality is '
+                      'currently unsupported' % (zip_url))
+
+def get_config_from_remote_git(git_url):
+    """Retrieves a path to the config file from an URL to a git repository.
+
+    Args:
+        git_url:    string url to a git repository.
+
+    Returns:
+        string path to the local config file.
+
+    Raises:
+        ConfigError:    if a config file could not be retrieved from the URL.
+    """
+    raise ConfigError('%s is an URL to a git repo but this functionality is '
+                      'currently unsupported' % (git_url))
+
+def get_config(location):
+    """Retrieves a path to the config file from any of the supported locations.
+
+    Args:
+        location:   string location description. This may be a local directory,
+            a local zip file, an URL to a zip file or an URL to a git repo.
+
+    Returns:
+        string path to the local config file.
+
+    Raises:
+        ConfigError:    if the location description given could not be used to
+            locate an installation config file.
+    """
+    import urlparse     # urlparse
+    if urlparse.urlparse(location).scheme:
+        if location.endswith('.git'):
+            return get_config_from_remote_git(location)
+        elif location.endswith('.zip'):
+            return get_config_from_remote_zip(location)
+        else:
+            raise ConfigError('%s is not a valid URL to a git repository or '
+                              'zip file.' % (location))
+    else:
+        if not os.path.exists(location):
+            raise ConfigError('%s does not exist locally.' % (location))
+        elif os.path.isfile(location):
+            return get_config_from_local_zip(location)
+        elif os.path.isdir(location):
+            return get_config_from_local_dir(location)
+        else:
+            raise ConfigError('%s is not a directory.' % (location))
+
 def main():
     """Main method."""
     # Handle command line.
@@ -165,9 +278,13 @@ def main():
                                      'to be lightly configurable and very '
                                      'simple. Useful for installing small, '
                                      'very simple projects.')
-    parser.add_argument('project_dir',
-                        type=str, metavar='PROJECT-DIR', nargs='?', default='.',
-                        help="project directory to install from; defaults to '.'")
+    parser.add_argument('project_loc',
+                        type=str, metavar='PROJECT-LOC', nargs='?',
+                        default=sys.path[0],
+                        help='location of the project to install. This may be a '
+                        'directory, a zip file, an URL to a zip file or an URL '
+                        'to a git repository. Defaults to this script\'s '
+                        'directory (%(default)s).')
     parser.add_argument('-y', '--yes',
                         dest='interactive', action='store_false', default=True,
                         help='run non-interactively, using all default arguments')
@@ -175,24 +292,30 @@ def main():
                         action='store_true', default=False,
                         help='create symbolic links instead of copying files')
     args = parser.parse_args()
-
-    # Parse the config file.
-    config = ConfigParser.SafeConfigParser(DEFAULTS)
-    config.read([os.path.join(args.project_dir, n) for n in SUPPORTED_NAMES])
-
-    # Remove the project information.
-    name, overrides = process_project(config, args.interactive)
-    # Loop through the parsed file and install each module.
-    for module in config.sections():
-        if module != PROJECT_SECTION:
-            process_module(args.project_dir, config, module, overrides,
-                           symlink=args.links, interactive=args.interactive)
-    print '\n%s installed' % (name)
-
-# Entry point.
-if __name__ == "__main__":
     try:
-        main()
+        # Find the config file.
+        config_path = get_config(args.project_loc)
+
+        # Parse the config file.
+        config = ConfigParser.SafeConfigParser(DEFAULTS)
+        with open(config_path) as config_file:
+            config.readfp(config_file)
+
+        # Remove the project information.
+        name, overrides = process_project(config, args.interactive)
+        # Loop through the parsed file and install each module.
+        for module in config.sections():
+            if module != PROJECT_SECTION:
+                process_module(args.project_dir, config, module, overrides,
+                               symlink=args.links, interactive=args.interactive)
+        print '\n%s installed' % (name)
     except KeyboardInterrupt:
         print "\nInstallation cancelled."
         sys.exit(1)
+    finally:
+        if _TEMPDIR:
+            shutil.rmtree(_TEMPDIR)
+
+# Entry point.
+if __name__ == "__main__":
+    main()
